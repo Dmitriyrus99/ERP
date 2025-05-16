@@ -195,7 +195,7 @@
   },
   {
    "default": "0",
-   "description": "If this is checked subsequent new invoices will be created on calendar  month and quarter start dates irrespective of current invoice start date",
+   "description": "If this is checked subsequent new invoices will be created on calendar month, quarter or year start dates irrespective of current invoice start date",
    "fieldname": "follow_calendar_months",
    "fieldtype": "Check",
    "label": "Follow Calendar Months",
