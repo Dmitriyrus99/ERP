@@ -151,13 +151,22 @@ class Subscription(Document):
 				_current_invoice_end = get_last_day(date)
 
 			if self.follow_calendar_months:
-				# Sets the end date
-				# eg if date is 17-Feb-2022, the invoice will be generated per month ie
-				# the invoice will be created from 17 Feb to 28 Feb
+				# Get the billing interval and count
 				billing_info = self.get_billing_cycle_and_interval()
+				billing_interval = billing_info[0]["billing_interval"]
 				billing_interval_count = billing_info[0]["billing_interval_count"]
-				_end = add_months(getdate(date), billing_interval_count - 1)
-				_current_invoice_end = get_last_day(_end)
+
+				# Calculate end date based on billing interval
+				if billing_interval == "Month":
+					# For monthly, get the last day of the month
+					_end = add_months(getdate(date), billing_interval_count - 1)
+					_current_invoice_end = get_last_day(_end)
+				else:  # billing_interval == "Year"
+					current_date = getdate(date)
+					# First, add the appropriate number of years
+					if billing_interval_count > 1:
+						current_date = add_to_date(current_date, years=billing_interval_count - 1)
+					_current_invoice_end = get_last_day(f"{current_date.year}-12-01")
 
 			if self.end_date and getdate(_current_invoice_end) > getdate(self.end_date):
 				_current_invoice_end = self.end_date
