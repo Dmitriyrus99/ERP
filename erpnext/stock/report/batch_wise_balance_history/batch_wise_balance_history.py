@@ -52,12 +52,13 @@ def execute(filters=None):
 								item_map[item]["item_name"],
 								item_map[item]["description"],
 								wh,
-								batch,
+								qty_dict.batch_no,
 								flt(qty_dict.opening_qty, float_precision),
 								flt(qty_dict.in_qty, float_precision),
 								flt(qty_dict.out_qty, float_precision),
 								flt(qty_dict.bal_qty, float_precision),
 								item_map[item]["stock_uom"],
+								qty_dict.batch_id,
 							]
 						)
 
@@ -68,16 +69,37 @@ def get_columns(filters):
 	"""return columns based on filters"""
 
 	columns = [
-		_("Item") + ":Link/Item:100",
-		_("Item Name") + "::150",
-		_("Description") + "::150",
-		_("Warehouse") + ":Link/Warehouse:100",
-		_("Batch") + ":Link/Batch:100",
-		_("Opening Qty") + ":Float:90",
-		_("In Qty") + ":Float:80",
-		_("Out Qty") + ":Float:80",
-		_("Balance Qty") + ":Float:90",
-		_("UOM") + "::90",
+		{"label": _("Item"), "fieldname": "item", "fieldtype": "Link", "options": "Item", "width": 100},
+		{"label": _("Item Name"), "fieldname": "item_name", "width": 150},
+		{"label": _("Description"), "fieldname": "description", "width": 150},
+		{
+			"label": _("Warehouse"),
+			"fieldname": "warehouse",
+			"fieldtype": "Link",
+			"options": "Warehouse",
+			"width": 100,
+		},
+		{
+			"label": _("Batch"),
+			"fieldname": "batch",
+			"fieldtype": "Link",
+			"options": "Batch",
+			"align": "left",
+			"width": 150,
+		},
+		{"label": _("Opening Qty"), "fieldname": "opening_qty", "fieldtype": "Float", "width": 90},
+		{"label": _("In Qty"), "fieldname": "in_qty", "fieldtype": "Float", "width": 80},
+		{"label": _("Out Qty"), "fieldname": "out_qty", "fieldtype": "Float", "width": 80},
+		{"label": _("Balance Qty"), "fieldname": "bal_qty", "fieldtype": "Float", "width": 90},
+		{"label": _("UOM"), "fieldname": "stock_uom", "width": 90},
+		{
+			"label": _("Batch ID"),
+			"fieldname": "batch_id",
+			"fieldtype": "Link",
+			"options": "Batch",
+			"width": 150,
+			"hidden": 1,
+		},
 	]
 
 	return columns
@@ -122,16 +144,22 @@ def get_stock_ledger_entries_for_batch_no(filters):
 		frappe.throw(_("'To Date' is required"))
 
 	posting_datetime = get_datetime(add_to_date(filters["to_date"], days=1))
+	title_field = frappe.get_meta("Batch", cached=True).get_title_field()
 
 	sle = frappe.qb.DocType("Stock Ledger Entry")
+	batch_table = frappe.qb.DocType("Batch")
+
 	query = (
 		frappe.qb.from_(sle)
+		.inner_join(batch_table)
+		.on(batch_table.name == sle.batch_no)
 		.select(
 			sle.item_code,
 			sle.warehouse,
-			sle.batch_no,
+			sle.batch_no.as_("batch_id"),
 			sle.posting_date,
 			fn.Sum(sle.actual_qty).as_("actual_qty"),
+			batch_table[title_field].as_("batch_no"),
 		)
 		.where(
 			(sle.docstatus < 2)
@@ -167,19 +195,23 @@ def get_stock_ledger_entries_for_batch_no(filters):
 def get_stock_ledger_entries_for_batch_bundle(filters):
 	sle = frappe.qb.DocType("Stock Ledger Entry")
 	batch_package = frappe.qb.DocType("Serial and Batch Entry")
-
+	batch_table = frappe.qb.DocType("Batch")
 	to_date = get_datetime(str(filters.to_date) + " 23:59:59")
+	title_field = frappe.get_meta("Batch", cached=True).get_title_field()
 
 	query = (
 		frappe.qb.from_(sle)
 		.inner_join(batch_package)
 		.on(batch_package.parent == sle.serial_and_batch_bundle)
+		.inner_join(batch_table)
+		.on(batch_table.name == batch_package.batch_no)
 		.select(
 			sle.item_code,
 			sle.warehouse,
-			batch_package.batch_no,
+			batch_package.batch_no.as_("batch_id"),
 			sle.posting_date,
 			fn.Sum(batch_package.qty).as_("actual_qty"),
+			batch_table[title_field].as_("batch_no"),
 		)
 		.where(
 			(sle.docstatus < 2)
@@ -224,7 +256,17 @@ def get_item_warehouse_batch_map(filters, float_precision):
 
 	for d in sle:
 		iwb_map.setdefault(d.item_code, {}).setdefault(d.warehouse, {}).setdefault(
-			d.batch_no, frappe._dict({"opening_qty": 0.0, "in_qty": 0.0, "out_qty": 0.0, "bal_qty": 0.0})
+			d.batch_no,
+			frappe._dict(
+				{
+					"batch_id": d.batch_id,
+					"batch_no": d.batch_no,
+					"opening_qty": 0.0,
+					"in_qty": 0.0,
+					"out_qty": 0.0,
+					"bal_qty": 0.0,
+				}
+			),
 		)
 		qty_dict = iwb_map[d.item_code][d.warehouse][d.batch_no]
 		if d.posting_date < from_date:

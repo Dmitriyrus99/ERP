@@ -399,10 +399,13 @@ def get_batch_no(doctype, txt, searchfield, start, page_len, filters):
 	doctype = "Batch"
 	meta = frappe.get_meta(doctype, cached=True)
 	searchfields = meta.get_search_fields()
+	title_field = meta.get_title_field()
 	page_len = 30
 
-	batches = get_batches_from_stock_ledger_entries(searchfields, txt, filters, start, page_len)
-	batches.extend(get_batches_from_serial_and_batch_bundle(searchfields, txt, filters, start, page_len))
+	batches = get_batches_from_stock_ledger_entries(searchfields, title_field, txt, filters, start, page_len)
+	batches.extend(
+		get_batches_from_serial_and_batch_bundle(searchfields, title_field, txt, filters, start, page_len)
+	)
 
 	filtered_batches = get_filterd_batches(batches)
 
@@ -442,13 +445,13 @@ def get_filterd_batches(data):
 
 	filterd_batch = []
 	for _batch, batch_data in batches.items():
-		if batch_data[1] > 0:
+		if batch_data[2] > 0:
 			filterd_batch.append(tuple(batch_data))
 
 	return filterd_batch
 
 
-def get_batches_from_stock_ledger_entries(searchfields, txt, filters, start=0, page_len=100):
+def get_batches_from_stock_ledger_entries(searchfields, title_field, txt, filters, start=0, page_len=100):
 	stock_ledger_entry = frappe.qb.DocType("Stock Ledger Entry")
 	batch_table = frappe.qb.DocType("Batch")
 
@@ -460,7 +463,9 @@ def get_batches_from_stock_ledger_entries(searchfields, txt, filters, start=0, p
 		.on(batch_table.name == stock_ledger_entry.batch_no)
 		.select(
 			stock_ledger_entry.batch_no,
+			batch_table[title_field],
 			Sum(stock_ledger_entry.actual_qty).as_("qty"),
+			batch_table.stock_uom,
 		)
 		.where(stock_ledger_entry.is_cancelled == 0)
 		.where(
@@ -498,7 +503,7 @@ def get_batches_from_stock_ledger_entries(searchfields, txt, filters, start=0, p
 	return query.run(as_list=1) or []
 
 
-def get_batches_from_serial_and_batch_bundle(searchfields, txt, filters, start=0, page_len=100):
+def get_batches_from_serial_and_batch_bundle(searchfields, title_field, txt, filters, start=0, page_len=100):
 	bundle = frappe.qb.DocType("Serial and Batch Entry")
 	stock_ledger_entry = frappe.qb.DocType("Stock Ledger Entry")
 	batch_table = frappe.qb.DocType("Batch")
@@ -513,7 +518,9 @@ def get_batches_from_serial_and_batch_bundle(searchfields, txt, filters, start=0
 		.on(batch_table.name == bundle.batch_no)
 		.select(
 			bundle.batch_no,
+			batch_table[title_field],
 			Sum(bundle.qty).as_("qty"),
+			batch_table.stock_uom,
 		)
 		.where(stock_ledger_entry.is_cancelled == 0)
 		.where(
