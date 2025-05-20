@@ -54,7 +54,7 @@
   },
   {
    "fieldname": "commission_rate",
-   "fieldtype": "Data",
+   "fieldtype": "Float",
    "label": "Commission Rate",
    "print_hide": 1
   },
