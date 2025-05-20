@@ -189,6 +189,7 @@ class WorkOrder(Document):
 		self.reset_use_multi_level_bom()
 		self.set_reserve_stock()
 		self.validate_fg_warehouse_for_reservation()
+		self.validate_dates()
 
 		if self.source_warehouse:
 			self.set_warehouses()
@@ -198,6 +199,13 @@ class WorkOrder(Document):
 		self.set_required_items(reset_only_qty=len(self.get("required_items")))
 		self.enable_auto_reserve_stock()
 
+	def validate_dates(self):
+		if self.actual_start_date and self.actual_end_date:
+			if self.actual_end_date < self.actual_start_date:
+				frappe.throw(
+					("Actual End Date cannot be before Actual Start Date")
+				)
+	
 	def validate_fg_warehouse_for_reservation(self):
 		if self.reserve_stock and self.sales_order:
 			warehouses = frappe.get_all(
