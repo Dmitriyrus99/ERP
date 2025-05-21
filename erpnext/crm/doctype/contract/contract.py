@@ -45,18 +45,23 @@ class Contract(Document):
 		status: DF.Literal["Unsigned", "Active", "Inactive"]
 	# end: auto-generated types
 
+	
 	def autoname(self):
-		name = self.party_name
+		base_name = self.party_name
 
 		if self.contract_template:
-			name += f" - {self.contract_template} Agreement"
+			base_name += f" - {self.contract_template} Agreement"
 
-		# If identical, append contract name with the next number in the iteration
-		if frappe.db.exists("Contract", name):
-			count = len(frappe.get_all("Contract", filters={"name": ["like", f"%{name}%"]}))
-			name = f"{name} - {count}"
+		name = base_name
+		counter = 1
+
+		# Keep incrementing the counter until a unique name is found
+		while frappe.db.exists("Contract", name):
+			name = f"{base_name} - {counter}"
+			counter += 1
 
 		self.name = _(name)
+
 
 	def validate(self):
 		self.validate_dates()
