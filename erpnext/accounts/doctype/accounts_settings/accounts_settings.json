@@ -19,6 +19,7 @@
   "column_break_17",
   "enable_common_party_accounting",
   "allow_multi_currency_invoices_against_single_party_account",
+  "confirm_before_resetting_posting_date",
   "journals_section",
   "merge_similar_account_heads",
   "deferred_accounting_settings_section",
@@ -578,6 +579,13 @@
    "fieldname": "use_new_budget_controller",
    "fieldtype": "Check",
    "label": "Use New Budget Controller"
+  },
+  {
+   "default": "1",
+   "description": "If enabled, user will be alerted before resetting posting date to current date in relevant transactions",
+   "fieldname": "confirm_before_resetting_posting_date",
+   "fieldtype": "Check",
+   "label": "Confirm before resetting posting date"
   }
  ],
  "grid_page_length": 50,
@@ -586,7 +594,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-05-16 11:08:00.796886",
+ "modified": "2025-05-21 19:27:51.878884",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Accounts Settings",
