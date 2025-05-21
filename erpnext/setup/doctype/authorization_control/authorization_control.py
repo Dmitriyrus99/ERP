@@ -136,12 +136,18 @@ class AuthorizationControl(TransactionBase):
 		if based_on == "Itemwise Discount":
 			if doc_obj:
 				for t in doc_obj.get("items"):
+					if t.name in (frappe.flags.ignore_auth_rule_for_item or []):
+						continue
+
 					self.validate_auth_rule(
 						doctype_name, t.discount_percentage, based_on, add_cond, company, t.item_code
 					)
 		elif based_on == "Item Group wise Discount":
 			if doc_obj:
 				for t in doc_obj.get("items"):
+					if t.name in (frappe.flags.ignore_auth_rule_for_item or []):
+						continue
+
 					self.validate_auth_rule(
 						doctype_name, t.discount_percentage, based_on, add_cond, company, t.item_group
 					)
@@ -156,6 +162,9 @@ class AuthorizationControl(TransactionBase):
 		if doc_obj:
 			price_list_rate, base_rate = 0, 0
 			for d in doc_obj.get("items"):
+				if d.name in (frappe.flags.ignore_auth_rule_for_item or []):
+					continue
+
 				if d.base_rate:
 					price_list_rate += (flt(d.base_price_list_rate) or flt(d.base_rate)) * flt(d.qty)
 					base_rate += flt(d.base_rate) * flt(d.qty)
