@@ -118,16 +118,13 @@ frappe.ui.form.on("Material Request", {
 			}
 
 			if (flt(frm.doc.per_ordered, precision) < 100) {
-				let add_create_pick_list_button = () => {
+				if (frm.doc.material_request_type === "Material Transfer") {
 					frm.add_custom_button(
 						__("Pick List"),
 						() => frm.events.create_pick_list(frm),
 						__("Create")
 					);
-				};
 
-				if (frm.doc.material_request_type === "Material Transfer") {
-					add_create_pick_list_button();
 					frm.add_custom_button(
 						__("Material Transfer"),
 						() => frm.events.make_stock_entry(frm),

@@ -874,6 +874,21 @@ def raise_work_orders(material_request):
 
 @frappe.whitelist()
 def create_pick_list(source_name, target_doc=None):
+	from erpnext.stock.doctype.packed_item.packed_item import is_product_bundle
+
+	def update_item_quantity(source, target, source_parent) -> None:
+		picked_qty = flt(source.picked_qty) / (flt(source.conversion_factor) or 1)
+		qty_to_be_picked = flt(source.qty) - max(picked_qty, flt(source.ordered_qty))
+
+		target.qty = qty_to_be_picked
+		target.stock_qty = qty_to_be_picked * flt(source.conversion_factor)
+
+	def should_pick_order_item(item) -> bool:
+		return item.qty > item.ordered_qty and not is_product_bundle(item.item_code)
+
+	if frappe.db.get_value("Material Request", source_name, "material_request_type") != "Material Transfer":
+		frappe.throw(_("Pick List can only be created from Material Transfer"))
+
 	doc = get_mapped_doc(
 		"Material Request",
 		source_name,
@@ -886,6 +901,8 @@ def create_pick_list(source_name, target_doc=None):
 			"Material Request Item": {
 				"doctype": "Pick List Item",
 				"field_map": {"name": "material_request_item", "stock_qty": "stock_qty"},
+				"postprocess": update_item_quantity,
+				"condition": should_pick_order_item,
 			},
 		},
 		target_doc,

@@ -343,12 +343,15 @@ class PickList(Document):
 	def update_reference_qty(self):
 		packed_items = []
 		so_items = []
+		mr_items = []
 
 		for item in self.locations:
 			if item.product_bundle_item:
 				packed_items.append(item.sales_order_item)
 			elif item.sales_order_item:
 				so_items.append(item.sales_order_item)
+			elif item.material_request_item:
+				mr_items.append(item.material_request_item)
 
 		if packed_items:
 			self.update_packed_items_qty(packed_items)
@@ -356,8 +359,11 @@ class PickList(Document):
 		if so_items:
 			self.update_sales_order_item_qty(so_items)
 
+		if mr_items:
+			self.update_material_request_item_qty(mr_items)
+
 	def update_packed_items_qty(self, packed_items):
-		picked_items = get_picked_items_qty(packed_items)
+		picked_items = get_so_picked_items_qty(packed_items)
 		self.validate_picked_qty(picked_items)
 
 		picked_qty = frappe._dict()
@@ -374,7 +380,7 @@ class PickList(Document):
 			)
 
 	def update_sales_order_item_qty(self, so_items):
-		picked_items = get_picked_items_qty(so_items)
+		picked_items = get_so_picked_items_qty(so_items)
 		self.validate_picked_qty(picked_items)
 
 		picked_qty = frappe._dict()
@@ -398,6 +404,23 @@ class PickList(Document):
 
 		for sales_order in sales_orders:
 			frappe.get_doc("Sales Order", sales_order, for_update=True).update_picking_status()
+
+	def update_material_request_item_qty(self, mr_items):
+		picked_items = get_mr_picked_items_qty(mr_items)
+		# self.validate_picked_qty(picked_items) # TODO: how to handle this for MR?
+
+		picked_qty = frappe._dict()
+		for d in picked_items:
+			picked_qty[d.material_request_item] = d.picked_qty
+
+		for item in mr_items:
+			frappe.db.set_value(
+				"Material Request Item",
+				item,
+				"picked_qty",
+				flt(picked_qty.get(item)),
+				update_modified=False,
+			)
 
 	@frappe.whitelist()
 	def create_stock_reservation_entries(self, notify=True) -> None:
@@ -800,7 +823,7 @@ def update_pick_list_status(pick_list):
 		doc.run_method("update_status")
 
 
-def get_picked_items_qty(items) -> list[dict]:
+def get_so_picked_items_qty(items) -> list[dict]:
 	pi_item = frappe.qb.DocType("Pick List Item")
 	return (
 		frappe.qb.from_(pi_item)
@@ -815,6 +838,26 @@ def get_picked_items_qty(items) -> list[dict]:
 		.groupby(
 			pi_item.sales_order_item,
 			pi_item.sales_order,
+		)
+		.for_update()
+	).run(as_dict=True)
+
+
+def get_mr_picked_items_qty(items) -> list[dict]:
+	pi_item = frappe.qb.DocType("Pick List Item")
+	return (
+		frappe.qb.from_(pi_item)
+		.select(
+			pi_item.material_request_item,
+			pi_item.item_code,
+			pi_item.material_request,
+			Sum(pi_item.stock_qty).as_("stock_qty"),
+			Sum(pi_item.picked_qty).as_("picked_qty"),
+		)
+		.where((pi_item.docstatus == 1) & (pi_item.material_request_item.isin(items)))
+		.groupby(
+			pi_item.material_request_item,
+			pi_item.material_request,
 		)
 		.for_update()
 	).run(as_dict=True)
@@ -977,7 +1020,7 @@ def validate_picked_materials(item_code, required_qty, locations, picked_item_de
 
 
 def filter_locations_by_picked_materials(locations, picked_item_details) -> list[dict]:
-	filterd_locations = []
+	filtered_locations = []
 	precision = frappe.get_precision("Pick List Item", "qty")
 	for row in locations:
 		key = row.warehouse
@@ -986,7 +1029,7 @@ def filter_locations_by_picked_materials(locations, picked_item_details) -> list
 
 		picked_qty = picked_item_details.get(key, {}).get("picked_qty", 0)
 		if not picked_qty:
-			filterd_locations.append(row)
+			filtered_locations.append(row)
 			continue
 		if picked_qty > row.qty:
 			row.qty = 0
@@ -998,9 +1041,9 @@ def filter_locations_by_picked_materials(locations, picked_item_details) -> list
 				row.serial_nos = list(set(row.serial_nos) - set(picked_item_details[key].get("serial_no")))
 
 		if flt(row.qty, precision) > 0:
-			filterd_locations.append(row)
+			filtered_locations.append(row)
 
-	return filterd_locations
+	return filtered_locations
 
 
 def get_available_item_locations_for_serial_and_batched_item(

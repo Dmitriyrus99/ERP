@@ -42,6 +42,7 @@ frappe.ui.form.on("Pick List", {
 			return {
 				filters: {
 					material_request_type: ["=", frm.doc.purpose],
+					docstatus: 1,
 				},
 			};
 		});
