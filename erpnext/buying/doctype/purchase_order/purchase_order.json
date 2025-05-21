@@ -24,6 +24,7 @@
   "apply_tds",
   "tax_withholding_category",
   "is_subcontracted",
+  "has_unit_price_items",
   "supplier_warehouse",
   "amended_from",
   "accounting_dimensions_section",
@@ -1285,6 +1286,14 @@
    "label": "Dispatch Address Details",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "has_unit_price_items",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Has Unit Price Items",
+   "no_copy": 1
   }
  ],
  "grid_page_length": 50,
