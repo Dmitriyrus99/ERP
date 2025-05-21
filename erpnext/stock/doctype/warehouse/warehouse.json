@@ -175,7 +175,7 @@
   {
    "fieldname": "state",
    "fieldtype": "Data",
-   "label": "State",
+   "label": "State/Province",
    "oldfieldname": "state",
    "oldfieldtype": "Select"
   },
@@ -264,7 +264,7 @@
  "idx": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2025-01-22 10:47:00.674163",
+ "modified": "2025-05-15 17:59:00.674163",
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "Warehouse",

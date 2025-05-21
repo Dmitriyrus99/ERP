@@ -600,7 +600,7 @@
   {
    "fieldname": "state",
    "fieldtype": "Data",
-   "label": "State"
+   "label": "State/Province"
   },
   {
    "fieldname": "country",
@@ -656,7 +656,7 @@
  "icon": "fa fa-info-sign",
  "idx": 195,
  "links": [],
- "modified": "2024-08-20 04:12:29.095761",
+ "modified": "2025-05-15 17:47:29.095761",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Opportunity",

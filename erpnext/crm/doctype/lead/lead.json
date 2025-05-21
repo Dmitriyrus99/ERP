@@ -486,7 +486,7 @@
   {
    "fieldname": "state",
    "fieldtype": "Data",
-   "label": "State"
+   "label": "State/Province"
   },
   {
    "fieldname": "country",
@@ -546,7 +546,7 @@
  "idx": 5,
  "image_field": "image",
  "links": [],
- "modified": "2025-01-31 13:40:08.094759",
+ "modified": "2025-05-15 17:47:08.094759",
  "modified_by": "Administrator",
  "module": "CRM",
  "name": "Lead",
