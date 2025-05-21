@@ -16,6 +16,7 @@ def execute(filters=None):
 		return [], [], None, []
 
 	validate_filters(filters)
+	validate_status_filters(filters)
 
 	columns = get_columns(filters)
 	conditions = get_conditions(filters)
@@ -29,6 +30,18 @@ def execute(filters=None):
 
 	return columns, data, None, chart_data
 
+def validate_status_filters(filters):    
+    status_list = filters.get('status', [])
+    exclude_status_list = filters.get('exclude_status', [])
+
+
+    if status_list and exclude_status_list:
+        status_set = set(status_list)
+        exclude_status_set = set(exclude_status_list)
+        intersection = status_set.intersection(exclude_status_set)
+
+        if intersection:
+            frappe.throw(f"Duplicate selections found in 'Include Status' and 'Exclude Status': {', '.join(intersection)}")
 
 def validate_filters(filters):
 	from_date, to_date = filters.get("from_date"), filters.get("to_date")
@@ -55,6 +68,15 @@ def get_conditions(filters):
 
 	if filters.get("warehouse"):
 		conditions += " and soi.warehouse = %(warehouse)s"
+
+	if filters.get("exclude_status") and len(filters.get("exclude_status")) > 0:
+		status_list = filters.get("exclude_status")
+
+		placeholders = ", ".join([f"%(exclude_{i})s" for i in range(len(status_list))])
+		conditions += f" and so.status NOT IN ({placeholders})"
+
+		for i, status in enumerate(status_list):
+			filters[f"exclude_{i}"] = status
 
 	return conditions
 
@@ -86,7 +108,6 @@ def get_data(conditions, filters):
 			ON sii.so_detail = soi.name and sii.docstatus = 1
 		WHERE
 			soi.parent = so.name
-			and so.status not in ('Stopped', 'On Hold')
 			and so.docstatus = 1
 			{conditions}
 		GROUP BY soi.name

@@ -60,36 +60,61 @@ frappe.query_reports["Sales Order Analysis"] = {
 		},
 		{
 			fieldname: "status",
-			label: __("Status"),
+			label: __("Include Status"),
 			fieldtype: "MultiSelectList",
 			options: ["To Pay", "To Bill", "To Deliver", "To Deliver and Bill", "Completed", "Closed"],
-			width: "80",
-			get_data: function (txt) {
-				let status = [
-					"To Pay",
-					"To Bill",
-					"To Deliver",
-					"To Deliver and Bill",
-					"Completed",
-					"Closed",
-				];
+			width: "120",
+			get_data: function(txt) {
+				let status = ["To Pay", "To Bill", "To Deliver", "To Deliver and Bill", "Completed", "Closed"];
+				let excluded_statuses = frappe.query_report.get_filter_value('exclude_status') || [];
 				let options = [];
 				for (let option of status) {
-					options.push({
-						value: option,
-						label: __(option),
-						description: "",
-					});
+					if (!excluded_statuses.includes(option)) {
+						options.push({
+							value: option,
+							label: __(option),
+							description: ""
+						});
+					}
 				}
 				return options;
 			},
+			on_change: function() {
+				frappe.query_report.refresh();
+			}
+		},
+		
+		{
+			fieldname: "exclude_status",
+			label: __("Exclude Status"),
+			fieldtype: "MultiSelectList",
+			options: ["To Pay", "To Bill", "To Deliver", "To Deliver and Bill", "Completed", "Closed", "Stopped", "On Hold"],
+			width: "120",
+			get_data: function(txt) {
+				let status = ["To Pay", "To Bill", "To Deliver", "To Deliver and Bill", "Completed", "Closed", "Stopped", "On Hold"];
+				let included_statuses = frappe.query_report.get_filter_value('status') || [];
+				let options = [];
+				for (let option of status) {
+					if (!included_statuses.includes(option)) {
+						options.push({
+							value: option,
+							label: __(option),
+							description: ""
+						});
+					}
+				}
+				return options;
+			},
+			on_change: function() {
+				frappe.query_report.refresh();
+			}
 		},
 		{
 			fieldname: "group_by_so",
 			label: __("Group by Sales Order"),
 			fieldtype: "Check",
 			default: 0,
-		},
+		}	
 	],
 
 	formatter: function (value, row, column, data, default_formatter) {
@@ -105,4 +130,9 @@ frappe.query_reports["Sales Order Analysis"] = {
 		}
 		return value;
 	},
+	onload: function(report) {
+		setTimeout(function() {
+			report.set_filter_value("exclude_status", ["Stopped", "On Hold"]);
+		}, 500);
+	}
 };
