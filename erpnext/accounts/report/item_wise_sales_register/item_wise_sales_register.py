@@ -374,8 +374,15 @@ def apply_conditions(query, si, sii, filters, additional_conditions=None):
 	if filters.get("item_code"):
 		query = query.where(sii.item_code == filters.get("item_code"))
 
+	from frappe.utils.nestedset import get_descendants_of
+
 	if filters.get("item_group"):
-		query = query.where(sii.item_group == filters.get("item_group"))
+		if frappe.db.get_value("Item Group", filters.get("item_group"), "is_group"):
+			item_groups = get_descendants_of("Item Group", filters.get("item_group"))
+			item_groups.append(filters.get("item_group"))
+			query = query.where(sii.item_group.isin(item_groups))
+		else:
+			query = query.where(sii.item_group == filters.get("item_group"))
 
 	if filters.get("income_account"):
 		query = query.where(
