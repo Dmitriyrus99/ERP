@@ -100,7 +100,9 @@ erpnext.PointOfSale.ItemSelector = class {
 		}
 
 		function get_item_image_html() {
-			if (!me.hide_images && item_image) {
+			if (me.hide_images) {
+				return ``;
+			} else if (!me.hide_images && item_image) {
 				return `<div class="item-qty-pill">
 							<span class="indicator-pill whitespace-nowrap ${indicator_color}">${qty_to_display}</span>
 						</div>
