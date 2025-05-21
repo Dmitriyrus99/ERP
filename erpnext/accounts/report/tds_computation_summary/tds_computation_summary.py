@@ -71,9 +71,8 @@ def group_by_party_and_category(data, filters):
 			"total_amount", 0.0
 		)
 
-		party_category_wise_map.get((row.get("party"), row.get("section_code")))["tax_amount"] += row.get(
-			"tax_amount", 0.0
-		)
+		party_category_wise_map.get((row.get("party"), row.get("section_code")))["tax_amount"] += row.get("total_amount", 0.0) * row.get("rate", 0.0)
+
 
 	final_result = get_final_result(party_category_wise_map)
 
@@ -91,7 +90,7 @@ def get_final_result(party_category_wise_map):
 def get_columns(filters):
 	pan = "pan" if frappe.db.has_column(filters.party_type, "pan") else "tax_id"
 	columns = [
-		{"label": _(frappe.unscrub(pan)), "fieldname": pan, "fieldtype": "Data", "width": 90},
+		{"label": _(frappe.unscrub(pan)), "fieldname": pan, "fieldtype": "Data", "width": 120},
 		{
 			"label": _(filters.get("party_type")),
 			"fieldname": "party",
