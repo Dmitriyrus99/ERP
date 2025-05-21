@@ -1079,6 +1079,8 @@ erpnext.stock.StockEntry = class StockEntry extends erpnext.stock.StockControlle
 		}
 		erpnext.hide_company(this.frm);
 		erpnext.utils.add_item(this.frm);
+		erpnext.accounts.ledger_preview.show_accounting_ledger_preview(this.frm);
+		erpnext.accounts.ledger_preview.show_stock_ledger_preview(this.frm);
 	}
 
 	serial_no(doc, cdt, cdn) {
