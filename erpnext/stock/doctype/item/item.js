@@ -84,6 +84,15 @@ frappe.ui.form.on("Item", {
 		}
 	},
 
+	onload_post_render: function (frm) {
+		if (!frm.timeline) return;
+
+		// Clear timeline UI and refresh to avoid ghost comments
+		frm.timeline.wrapper.empty();
+		frm.timeline.refresh();
+	},
+
+
 	refresh: function (frm) {
 		if (frm.doc.is_stock_item) {
 			frm.add_custom_button(
@@ -637,11 +646,11 @@ $.extend(erpnext.item, {
 				fields: [
 					frm.doc.image
 						? {
-								fieldtype: "Check",
-								label: __("Create a variant with the template image."),
-								fieldname: "use_template_image",
-								default: 0,
-						  }
+							fieldtype: "Check",
+							label: __("Create a variant with the template image."),
+							fieldname: "use_template_image",
+							default: 0,
+						}
 						: null,
 					{
 						fieldtype: "HTML",
