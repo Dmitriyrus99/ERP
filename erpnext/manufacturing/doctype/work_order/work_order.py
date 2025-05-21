@@ -197,6 +197,7 @@ class WorkOrder(Document):
 
 		self.set_required_items(reset_only_qty=len(self.get("required_items")))
 		self.enable_auto_reserve_stock()
+		self.validate_operations_sequence()
 
 	def validate_fg_warehouse_for_reservation(self):
 		if self.reserve_stock and self.sales_order:
@@ -221,6 +222,47 @@ class WorkOrder(Document):
 	def enable_auto_reserve_stock(self):
 		if self.is_new() and frappe.db.get_single_value("Stock Settings", "auto_reserve_stock"):
 			self.reserve_stock = 1
+
+	def validate_operations_sequence(self):
+		sequence_id_list = [op.sequence_id for op in self.operations]
+
+		if sequence_id_list:
+			bool_list = [not sequence_id for sequence_id in sequence_id_list]
+			if all(bool_list):
+				for op in self.operations:
+					op.sequence_id = op.idx
+				return
+			elif any(bool_list):
+				op = next((op for op in self.operations if not op.sequence_id), None)
+				frappe.throw(
+					_(
+						"Row #{0}: Incorrect Sequence ID for Operation {1}. If any single operation has a Sequence ID then all other operations must have one too."
+					).format(op.idx, frappe.bold(op.operation))
+				)
+
+			expected = set(range(1, max(sequence_id_list) + 1))
+			missing = sorted(expected - set(sequence_id_list))
+			if missing:
+				frappe.throw(
+					_("Error in Operations table. The following Sequence IDs are missing: {0}").format(
+						", ".join([str(i) for i in missing])
+					)
+				)
+			elif sequence_id_list != sorted(sequence_id_list):
+				frappe.throw(
+					_(
+						"Row #{0}: Error in Operations table. The Sequence IDs must be in ascending order."
+					).format(
+						next(
+							(
+								op.idx
+								for op in self.operations
+								if op.sequence_id != sorted(sequence_id_list)[0]
+							),
+							None,
+						)
+					)
+				)
 
 	def set_warehouses(self):
 		for row in self.required_items:
@@ -703,17 +745,6 @@ class WorkOrder(Document):
 
 		enable_capacity_planning = not cint(manufacturing_settings_doc.disable_capacity_planning)
 		plan_days = cint(manufacturing_settings_doc.capacity_planning_for_days) or 30
-
-		if all([op.sequence_id for op in self.operations]):
-			self.operations = sorted(self.operations, key=lambda op: op.sequence_id)
-			for idx, op in enumerate(self.operations):
-				op.idx = idx + 1
-		elif any([op.sequence_id for op in self.operations]):
-			frappe.throw(
-				_(
-					"Row #{0}: Incorrect Sequence ID. If any single operation has a Sequence ID then all other operations must have one too."
-				).format(next((op.idx for op in self.operations if not op.sequence_id), None))
-			)
 
 		for idx, row in enumerate(self.operations):
 			qty = self.qty
